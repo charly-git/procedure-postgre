@@ -1,6 +1,6 @@
 -- PROCEDURE: public.DuplicateStagingContactProc()
 
--- DROP PROCEDURE public."DuplicateStagingContactProc"();
+-- DROP PROCEDURE public."DuplicateStagingContactProc"(); --
 
 CREATE OR REPLACE PROCEDURE public."DuplicateStagingContactProc"(
 	)
