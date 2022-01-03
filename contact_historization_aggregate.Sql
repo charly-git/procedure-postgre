@@ -48,7 +48,6 @@ create table
 SELECT 
 	"s360a__Contact__c" as contact_id,
 	min("CloseDate") as first_date
-	
 FROM 
 	salesforce."Opportunity"
 WHERE 

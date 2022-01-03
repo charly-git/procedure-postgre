@@ -25,15 +25,13 @@ if previous_month = 0 then
 end if;
 
 environnement := 'dev';
-CALL public.log_message('Clean');
-
 CALL public.log_message('previous_month ' || previous_month);
 CALL public.log_message('previous_year ' || previous_year);
 CALL public.log_message('current_month ' || current_month);
 CALL public.log_message('current_year ' || current_year);
 
 CALL public.log_message('Create Datamart CONTACT : START');
-CALL public.log_message('Alimenter la table historique des contacts');
+CALL public.log_message('Alimentation de la table historique des contacts');
 CALL public.log_message('Get current month');
 tstart := clock_timestamp();
 fulltimestart := clock_timestamp();
@@ -42,7 +40,7 @@ fulltimestart := clock_timestamp();
 drop table if exists public.tmp_current_month_contact_1;
 create UNLOGGED table 
 	public.tmp_current_month_contact_1 as 
-SELECT  -- opli_id, campaign_id, rgli_id, campaign_member_id, previous_opp_date, rgli_first_payment_date, contact_first_donation_date, process_from
+SELECT 
 	contact_id , -- group
 	TO_DATE('01' || lpad(date_part('month', date)::text, 2, '0') || date_part('year', date), 'DDMMYYYY') as observation_date, 
 	opportunity_id,
@@ -58,10 +56,9 @@ SELECT  -- opli_id, campaign_id, rgli_id, campaign_member_id, previous_opp_date,
 		AND date_part('year',rgli."s360a__ProcessFrom__c") = current_year
 	THEN 1 ELSE 0 END flag_downgrade
 FROM 
-	public.opportunity_li_fact -- tmp_oppli_full -- opportunity_li_fact -- public.tmp_opp_li_fact_2019 -- 
-	AS opli
+	public.opportunity_li_fact AS opli -- tmp_oppli_full (table de reprise d'histo)
 	LEFT JOIN salesforce."s360a__RegularGivingLineItem__c" as rgli
-	on opli.rgli_id =  rgli."Id"
+		on opli.rgli_id =  rgli."Id"
 WHERE
 	date_part('month', date) = current_month
 	and date_part('year', date) = current_year;
@@ -85,7 +82,7 @@ tend := clock_timestamp();
 duration := tend - tstart;
 CALL public.log_message('FINISH. Execution time: '||duration);
 tstart := clock_timestamp();
-CALL public.log_message('Join histo_contact and current_contact');
+CALL public.log_message('Join histo_contact and current_contact : contact to update');
 /* ************************************************************************ */
 
 drop table if exists public.tmp_contact_to_update;
@@ -115,11 +112,9 @@ FROM
 		ON hc.contact_id = cmc.contact_id
 	LEFT JOIN salesforce."s360a__RegularGiving__c" AS rg
 		on hc.contact_id = rg."s360a__Contact__c"
-
 WHERE
 	date_part('year', hc.observation_date) = previous_year
 	AND date_part('month', hc.observation_date) = previous_month
-	
 GROUP BY 
 	hc.contact_id,
 	rg."s360a__RGStatus__c",
@@ -151,7 +146,7 @@ SELECT
 	flag_downgrade,
 	CASE WHEN nb_du > 0 		 THEN 1 ELSE nb_month_last_du + 1 	 	END nb_month_last_du,
 	CASE WHEN nb_pa > 0 		 THEN 1 ELSE nb_month_last_pa + 1 		END nb_month_last_pa,
-	CASE WHEN nb_opportunity > 0 THEN 1 ELSE nb_month_last_activity + 1 	END nb_month_last_activity
+	CASE WHEN nb_opportunity > 0 THEN 1 ELSE nb_month_last_activity + 1 END nb_month_last_activity
 FROM 
 	public.tmp_contact_to_update;
 	
@@ -221,7 +216,7 @@ SELECT
 	sum(flag_upgrade) as flag_upgrade,
 	sum(flag_downgrade) as flag_downgrade,
 	min(nb_month_last_du) as nb_month_last_du,
-	min(nb_month_las-t_pa) as nb_month_last_pa,
+	min(nb_month_last_pa) as nb_month_last_pa,
 	min(nb_month_last_activity) as nb_month_last_activity
 FROM
 	public.tmp_histo_insert_prep

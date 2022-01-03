@@ -1,8 +1,8 @@
--- PROCEDURE: public.update_tableau()
+-- PROCEDURE: public.update_tableau_mensuel()
 
--- DROP PROCEDURE public.update_tableau();
+-- DROP PROCEDURE public.update_tableau_mensuel();
 
-CREATE OR REPLACE PROCEDURE public.update_tableau(
+CREATE OR REPLACE PROCEDURE public.update_tableau_mensuel(
 	)
 LANGUAGE 'plpgsql'
 AS $BODY$
@@ -26,8 +26,10 @@ tend := clock_timestamp();
 duration := tend - tstart;
 CALL public.log_message('Clean FINISH. Execution time: '||duration);
 tstart := clock_timestamp();
-CALL public.log_message('rm fact and dim tables.');
+CALL public.log_message('Reprise d historique depuis le début de l année');
 /* ************************************************************************ */
+
+/* à faire */
 
 CALL public.rm_1_create_fact_table();
 CALL public.rm_2_correctif_fact_table();
@@ -83,10 +85,3 @@ CALL public.log_message('CORRECTLY FINISH.');
 
 END
 $BODY$;
-
-GRANT EXECUTE ON PROCEDURE public.update_tableau() TO nsuch WITH GRANT OPTION;
-
-GRANT EXECUTE ON PROCEDURE public.update_tableau() TO csadorge;
-
-GRANT EXECUTE ON PROCEDURE public.update_tableau() TO PUBLIC;
-

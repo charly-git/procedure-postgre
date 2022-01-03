@@ -24,20 +24,21 @@ create table
 	public.tmp_opp as 
 SELECT 
 	opp."Id" 											as opportunity_id, 
-	cast(campaign."s360a__GLSuffixValue__c" as integer)	as gl, 
+	cast(campaign."s360a__GLSuffixValue__c" as integer)	as gl,
 	opp."CampaignId" 					 as campaign_id, 
 	opp."s360a__Contact__c" 			 as contact_id, 
 	opp."s360a__RegularGiving__c" 		 as rg_id,
 	opp."CloseDate"						 as date,
 	opp."Paid_Date__c"					 as paid_date_lux,
-	opp."gpi__GiftCountryOfOwnership__c" as country
+	opp."gpi__GiftCountryOfOwnership__c" as country,
+	CASE WHEN date_part('year', campaign."StartDate") = date_part('year', opp."CloseDate"	) THEN true ELSE false END is_current_year 
 FROM 
 	salesforce."Opportunity" AS opp
 	LEFT JOIN "salesforce"."Campaign" AS campaign ON campaign."Id" = opp."CampaignId"
 WHERE 
 	opp."IsWon" is true
  	and date_part('year', opp."CloseDate") > 2018
-	--and "s360a__Contact__c" = '0033V00000H4BUwQAN'
+	-- and "s360a__Contact__c" = '0033V00000H4BUwQAN'
 	;
 
 /* ***************************** LOG PART ********************************* */
@@ -61,7 +62,8 @@ SELECT
 	rg_id, opli."Id" as opli_id, 
 	cast(opli."s360a__GLSuffixValue__c" as integer) as gl_opli,
 	opli."s360a__RegularGivingLineItem__c" as rgli_id,
-	opli."TotalPrice" as amount
+	opli."TotalPrice" as amount,
+	opp.is_current_year
 FROM 
 	public.tmp_opp as opp 
 	LEFT JOIN salesforce."OpportunityLineItem" as opli 
@@ -127,7 +129,8 @@ SELECT
 	rgli.rgli_id,
 	opli.amount,
 	rgli.rgli_first_payment_date,
-	CASE WHEN rgli.rgli_id is null THEN opli.country ELSE rgli.country END country
+	CASE WHEN rgli.rgli_id is null THEN opli.country ELSE rgli.country END country,
+	opli.is_current_year
 	
 FROM public.tmp_opli_fact as opli
 	 left join public.tmp_rgli_fact_2 as rgli
@@ -158,7 +161,8 @@ SELECT
 	amount,
 	op.rgli_first_payment_date,
 	op.name_campaign,
-	process_from
+	process_from,
+	is_current_year
 	
 FROM public.tmp_li_fact as op
 	 left join salesforce."CampaignMember" as cm
@@ -194,7 +198,7 @@ create table
 	public.tmp_opportunity_li_fact_2 as 
 select  
 	opli.opli_id, opportunity_id, campaign_id, contact_id, gl, date, rgli_id, country, campaign_member_id, 
-	amount, previous_opp_date, name_campaign, process_from, rgli_first_payment_date
+	amount, previous_opp_date, name_campaign, process_from, rgli_first_payment_date, is_current_year
 FROM 
 	public.tmp_opportunity_li_fact as opli
 	left join public.tmp_get_previous_don as prev 
@@ -224,7 +228,7 @@ create table
 	public.opportunity_li_fact as 
 select  
 	opli.opli_id, opportunity_id, campaign_id, contact_id, gl, date, rgli_id, country, campaign_member_id, amount, previous_opp_date, 
-	name_campaign, process_from, rgli_first_payment_date, contact_first_donation_date,
+	name_campaign, process_from, rgli_first_payment_date, contact_first_donation_date, is_current_year,
 
 	CASE 
 		WHEN date_part('year', rgli_first_payment_date) < 2021 OR date_part('year', contact_first_donation_date) < 2021 THEN 'Old' 
@@ -253,6 +257,8 @@ if environnement = 'prod' then
 	drop table public.get_previous_don;
 end if;
 
+GRANT SELECT ON public.opportunity_li_fact TO PUBLIC;
+
 tend := clock_timestamp();
 duration := tend - tstart;
 CALL public.log_message('first step COMPLETE. Execution time: '||duration);
@@ -270,12 +276,10 @@ drop table if exists public.tmp_opportunity_li_fact_2;
 drop table if exists public.tmp_contact_first_donation_date;
 CALL public.log_message('CLEAN FINISH.');
 
+GRANT SELECT ON public.opportunity_li_fact TO PUBLIC;
+
 END
 $BODY$;
-
-GRANT EXECUTE ON PROCEDURE public.rm_1_create_fact_table() TO nsuch WITH GRANT OPTION;
-
-GRANT EXECUTE ON PROCEDURE public.rm_1_create_fact_table() TO csadorge;
 
 GRANT EXECUTE ON PROCEDURE public.rm_1_create_fact_table() TO PUBLIC;
 
