@@ -1,8 +1,8 @@
--- PROCEDURE: public.rm_5_suivi_leads()
+-- PROCEDURE: datamart.rm_5_suivi_leads()
 
--- DROP PROCEDURE public.rm_5_suivi_leads();
+-- DROP PROCEDURE datamart.rm_5_suivi_leads();
 
-CREATE OR REPLACE PROCEDURE public.rm_5_suivi_leads(
+CREATE OR REPLACE PROCEDURE datamart.rm_5_suivi_leads(
 	)
 LANGUAGE 'plpgsql'
 AS $BODY$
@@ -18,9 +18,9 @@ CALL public.log_message('Create Suivi Lead : START');
 CALL public.log_message('Get leads ');
 tstart := clock_timestamp();
 
-drop table if exists public.tmp_leads_leads;
+drop table if exists datamart.tmp_leads_leads;
 create table 
-	public.tmp_leads_leads as 
+	datamart.tmp_leads_leads as 
 SELECT 	-- "Id", 
 		"Email" as email,
 		"gpi__CountryOfOwnership__c" as country,
@@ -31,9 +31,9 @@ SELECT 	-- "Id",
 FROM salesforce."Lead"
 	where "IsConverted" is false;
 	
-drop table if exists public.tmp_leads_contact;
+drop table if exists datamart.tmp_leads_contact;
 create table 
-	public.tmp_leads_contact as 	
+	datamart.tmp_leads_contact as 	
 SELECT --"Id", 
 		"Email" as email, 
 		"gpi__CountryOfOwnership__c" as country,
@@ -46,7 +46,7 @@ SELECT --"Id",
 FROM salesforce."Contact"
 where "AutomaticContactCodes__c" like '%Non Donor%'
  and ("Email" is not null or "Phone" is not null or "MobilePhone" is not null)
-  and ("Email" not in (select email from public.tmp_leads_leads where email is not null) or "Email" is null);
+  and ("Email" not in (select email from datamart.tmp_leads_leads where email is not null) or "Email" is null);
 	
 /*
 		select count (*), date_part('year', "gpi__Lead_Sign_Up_Date__c")  as year
@@ -55,12 +55,12 @@ FROM salesforce."Contact"
 	group by date_part('year', "gpi__Lead_Sign_Up_Date__c") 
 */
 
-drop table if exists public.tmp_leads;
+drop table if exists datamart.tmp_leads;
 create table 
-	public.tmp_leads as 
-	select * from public.tmp_leads_contact
+	datamart.tmp_leads as 
+	select * from datamart.tmp_leads_contact
 	union 
-	select * from public.tmp_leads_leads;
+	select * from datamart.tmp_leads_leads;
 	
 	
 
@@ -72,13 +72,13 @@ tstart := clock_timestamp();
 CALL public.log_message('Keep the right part.');
 /* ************************************************************************ */
 
-drop table if exists public.suivi_leads;
+drop table if exists datamart.suivi_leads;
 create table 
-	public.suivi_leads as 
+	datamart.suivi_leads as 
 SELECT 
 	*
 FROM 
-	public.tmp_leads -- 2 166 791
+	datamart.tmp_leads -- 2 166 791
 WHERE
 	date_part('year', date) > 2019 
 	and country is not null;
@@ -92,7 +92,7 @@ CALL public.log_message('first step COMPLETE. Execution time: '||duration);
 CALL public.log_message('CORRECTLY FINISH.');
 
 CALL public.log_message('CLEAN.');
-drop table if exists public.tmp_opp;
+drop table if exists datamart.tmp_opp;
 CALL public.log_message('CLEAN FINISH.');
 
 END

@@ -1,8 +1,8 @@
--- PROCEDURE: public.rm_3_get_dim_from_fact()
+-- PROCEDURE: datamart.rm_3_get_dim_from_fact()
 
--- DROP PROCEDURE public.rm_3_get_dim_from_fact();
+-- DROP PROCEDURE datamart.rm_3_get_dim_from_fact();
 
-CREATE OR REPLACE PROCEDURE public.rm_3_get_dim_from_fact(
+CREATE OR REPLACE PROCEDURE datamart.rm_3_get_dim_from_fact(
 	)
 LANGUAGE 'plpgsql'
 AS $BODY$
@@ -19,7 +19,7 @@ CALL public.log_message('get contact.');
 /* ************************************************************************ */
 
 create table 
-	public.contact_tmp
+	datamart.tmp_contact
 as
 SELECT 
 	contact."Id" as id, 
@@ -37,21 +37,21 @@ FROM
 	left join salesforce."Account" as account
 	on contact."AccountId" = account."Id"
 WHERE
-	contact."Id" in ( select contact_id from opportunity_li_fact);
+	contact."Id" in ( select contact_id from datamart.opportunity_li_fact);
 
-drop table public.contact;
+drop table if exists datamart.contact;
 create table 
-	public.contact as
+	datamart.contact as
 SELECT 
 	id, first_donation_date, last_donation_date, count("Id") as nb_rg, last_name, first_name, mailing_postal_code, email, lead_sign_up_date, segmentation_n1, segmentation_n2
 FROM 
-	contact_tmp AS contact
+	datamart.tmp_contact AS contact
 	left join salesforce."s360a__RegularGiving__c" as rg
 	on contact.id = rg."s360a__Contact__c"
 GROUP BY
 	id, first_donation_date, last_donation_date, last_name, first_name, mailing_postal_code, email, lead_sign_up_date, segmentation_n1, segmentation_n2;
 
-drop table public.contact_tmp;
+drop table if exists datamart.tmp_contact;
 
 /* ***************************** LOG PART ********************************* */
 tend := clock_timestamp();
@@ -60,9 +60,9 @@ CALL public.log_message('FINISH. Execution time: '||duration);
 tstart := clock_timestamp();
 CALL public.log_message('get campaign_member.');
 /* ************************************************************************ */
-drop table if exists public.campaign_member;
+drop table if exists datamart.campaign_member;
 create table 
-	public.campaign_member 
+	datamart.campaign_member 
 as
 SELECT 
 	"Id" as id,
@@ -78,13 +78,13 @@ SELECT
 FROM 
 	"salesforce"."CampaignMember" 
 WHERE
-	"Id" in (select campaign_member_id from public.opportunity_li_fact where campaign_member_id is not null);
+	"Id" in (select campaign_member_id from datamart.opportunity_li_fact where campaign_member_id is not null);
 
 	
 /*
-drop table if exists public.campaign_member_contact;
+drop table if exists datamart.campaign_member_contact;
 create table 
-	public.campaign_member_contact 
+	datamart.campaign_member_contact 
 as
 SELECT 
 	"CampaignId" as campaign_id,
@@ -94,12 +94,12 @@ FROM
 WHERE
 	"CampaignId" like '7013V000001Fowm%' or "CampaignId" like '7013V000001Foww%'
 	
-	"ContactId" in (select contact_id from public.opportunity_li_fact)
+	"ContactId" in (select contact_id from datamart.opportunity_li_fact)
 	and date_part('year', cm."CreatedDate") > 2019;
 	
 	
 SELECT   COUNT(*) AS nbr_doublon, contact_id
-FROM     public.campaign_member_contact
+FROM     datamart.campaign_member_contact
 GROUP BY contact_id
 HAVING   COUNT(*) > 1	
 	
@@ -114,9 +114,9 @@ tstart := clock_timestamp();
 CALL public.log_message('get opportunity.');
 /* ************************************************************************ */
 	
-drop table public.opportunity;
+drop table if exists datamart.opportunity;
 create table 
-	public.opportunity as 
+	datamart.opportunity as 
 SELECT 	
 	"Id" as id,
 	"Amount" as amout,
@@ -131,15 +131,15 @@ SELECT
 FROM 
 	salesforce."Opportunity" as opp
 WHERE
-	"Id" in (select opportunity_id from public.opportunity_li_fact);
+	"Id" in (select opportunity_id from datamart.opportunity_li_fact);
 	
 	
 	
 
-drop table public.campaign;
+drop table if exists datamart.campaign;
 
 create table 
-	public.campaign as 
+	datamart.campaign as 
 SELECT
 	"Id" 						as id,
 	"Name"						as name,
@@ -148,12 +148,14 @@ SELECT
 	"gpi__GP_Channel__c"		as channel,
 	"gpi__Sub_Channel__c"		as sub_channel,
 	"gpi__Media_Channel__c"		as media_channel,
-	"gpi__Programme__c"			as programme
+	"gpi__Programme__c"			as programme,
+	"StartDate"					as start_date
+	
 	
 FROM 
 	salesforce."Campaign"
 WHERE
-	"Id" in (select campaign_id from public.opportunity_li_fact);
+	"Id" in (select campaign_id from datamart.opportunity_li_fact);
 	
 tend := clock_timestamp();
 duration := tend - tstart;
@@ -162,9 +164,7 @@ CALL public.log_message('first step COMPLETE. Execution time: '||duration);
 END
 $BODY$;
 
-GRANT EXECUTE ON PROCEDURE public.rm_3_get_dim_from_fact() TO nsuch WITH GRANT OPTION;
+GRANT EXECUTE ON PROCEDURE datamart.rm_3_get_dim_from_fact() TO csadorge;
 
-GRANT EXECUTE ON PROCEDURE public.rm_3_get_dim_from_fact() TO csadorge;
-
-GRANT EXECUTE ON PROCEDURE public.rm_3_get_dim_from_fact() TO PUBLIC;
+GRANT EXECUTE ON PROCEDURE datamart.rm_3_get_dim_from_fact() TO PUBLIC;
 

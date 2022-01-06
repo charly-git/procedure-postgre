@@ -1,8 +1,8 @@
--- PROCEDURE: public._os_clean_tmp_table()
+-- PROCEDURE: datamart._os_clean_tmp_table()
 
--- DROP PROCEDURE public._os_clean_tmp_table();
+-- DROP PROCEDURE datamart._os_clean_tmp_table();
 
-CREATE OR REPLACE PROCEDURE public._os_clean_tmp_table(
+CREATE OR REPLACE PROCEDURE datamart._os_clean_tmp_table(
 	)
 LANGUAGE 'plpgsql'
 AS $BODY$
@@ -24,7 +24,7 @@ FOR row IN
 	FROM
 		information_schema.tables
 	WHERE 	table_type = 'BASE TABLE'
-	AND 	table_schema = 'public'
+	AND 	table_schema = 'datamart'
 	AND 	(table_name ILIKE ('tmp_%') or table_name ILIKE ('test%'))
 	AND 	table_name <> 'tmp_tDBOutputBulkExec_2_tPBE_yXmBlf1'
 LOOP
@@ -33,11 +33,9 @@ LOOP
 END LOOP;
 
 tend := clock_timestamp();
-duration := tend - tstart;
-CALL public.log_message('Contact histo COMPLETE. Execution time: '||duration);
 duration := tend - fulltimestart;
 CALL public.log_message('COMPLETE. Full execution time: '||duration);
-CALL public.log_message('CORRECTLY FINISH.');
+CALL public.log_message('CLEAN FINISH.');
 
 END
 $BODY$;

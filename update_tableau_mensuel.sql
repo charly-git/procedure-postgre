@@ -1,8 +1,8 @@
--- PROCEDURE: public.update_tableau_mensuel()
+-- PROCEDURE: datamart.update_tableau_mensuel()
 
--- DROP PROCEDURE public.update_tableau_mensuel();
+-- DROP PROCEDURE datamart.update_tableau_mensuel();
 
-CREATE OR REPLACE PROCEDURE public.update_tableau_mensuel(
+CREATE OR REPLACE PROCEDURE datamart.update_tableau_mensuel(
 	)
 LANGUAGE 'plpgsql'
 AS $BODY$
@@ -19,7 +19,7 @@ BEGIN
 CALL public.log_message('Update Tableau : START');
 tstart := clock_timestamp();
 
-CALL public._os_clean_tmp_table();
+CALL datamart._os_clean_tmp_table();
 
 /* ***************************** LOG PART ********************************* */
 tend := clock_timestamp();
@@ -31,9 +31,9 @@ CALL public.log_message('Reprise d historique depuis le début de l année');
 
 /* à faire */
 
-CALL public.rm_1_create_fact_table();
-CALL public.rm_2_correctif_fact_table();
-CALL public.rm_3_get_dim_from_fact();
+CALL datamart.rm_1_create_fact_table();
+CALL datamart.rm_2_correctif_fact_table();
+CALL datamart.rm_3_get_dim_from_fact();
 
 /* ***************************** LOG PART ********************************* */
 tend := clock_timestamp();
@@ -43,7 +43,7 @@ tstart := clock_timestamp();
 CALL public.log_message('Extract lux.');
 /* ************************************************************************ */
 
-CALL public.rm_4_lux_minus_table();
+CALL datamart.rm_4_lux_minus_table();
 
 /* ***************************** LOG PART ********************************* */
 tend := clock_timestamp();
@@ -62,11 +62,11 @@ if previous_month = 0 then
    previous_month := 12;
 end if;
 
-CALL public.contact_historization(previous_month, previous_year);  
-CALL public.contact_historization_aggregate(previous_month, previous_year); 
+CALL datamart.contact_historization(previous_month, previous_year);  
+CALL datamart.contact_historization_aggregate(previous_month, previous_year); 
 
-CALL public.contact_historization(current_month, current_year);  
-CALL public.contact_historization_aggregate(current_month, current_year); 
+CALL datamart.contact_historization(current_month, current_year);  
+CALL datamart.contact_historization_aggregate(current_month, current_year); 
 
 /* ***************************** LOG PART ********************************* */
 tend := clock_timestamp();
@@ -76,7 +76,7 @@ tstart := clock_timestamp();
 CALL public.log_message('Last Clean.');
 /* ************************************************************************ */
 
-CALL public._os_clean_tmp_table();
+CALL datamart._os_clean_tmp_table();
 
 tend := clock_timestamp();
 duration := tend - tstart;

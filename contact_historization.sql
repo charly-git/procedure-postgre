@@ -1,8 +1,8 @@
--- PROCEDURE: public.contact_historization(integer, integer)
+-- PROCEDURE: datamart.contact_historization(integer, integer)
 
--- DROP PROCEDURE public.contact_historization(integer, integer);
+-- DROP PROCEDURE datamart.contact_historization(integer, integer);
 
-CREATE OR REPLACE PROCEDURE public.contact_historization(
+CREATE OR REPLACE PROCEDURE datamart.contact_historization(
 	current_month integer,
 	current_year integer)
 LANGUAGE 'plpgsql'
@@ -37,9 +37,9 @@ tstart := clock_timestamp();
 fulltimestart := clock_timestamp();
 
 -- comptage
-drop table if exists public.tmp_current_month_contact_1;
+drop table if exists datamart.tmp_current_month_contact_1;
 create UNLOGGED table 
-	public.tmp_current_month_contact_1 as 
+	datamart.tmp_current_month_contact_1 as 
 SELECT 
 	contact_id , -- group
 	TO_DATE('01' || lpad(date_part('month', date)::text, 2, '0') || date_part('year', date), 'DDMMYYYY') as observation_date, 
@@ -56,7 +56,7 @@ SELECT
 		AND date_part('year',rgli."s360a__ProcessFrom__c") = current_year
 	THEN 1 ELSE 0 END flag_downgrade
 FROM 
-	public.opportunity_li_fact AS opli -- tmp_oppli_full (table de reprise d'histo)
+	datamart.opportunity_li_fact AS opli -- datamart.tmp_oppli_full (table de reprise d'histo)
 	LEFT JOIN salesforce."s360a__RegularGivingLineItem__c" as rgli
 		on opli.rgli_id =  rgli."Id"
 WHERE
@@ -64,8 +64,8 @@ WHERE
 	and date_part('year', date) = current_year;
 
 -- regroupement
-drop table if exists public.tmp_current_month_contact;
-create table tmp_current_month_contact as
+drop table if exists datamart.tmp_current_month_contact;
+create table datamart.tmp_current_month_contact as
 SELECT 	contact_id, observation_date, 
 		count(distinct opportunity_id) as nb_opportunity,
 		count(CASE WHEN rgli_id is null THEN opportunity_id END) as nb_du,
@@ -73,7 +73,7 @@ SELECT 	contact_id, observation_date,
 		count(CASE WHEN rgli_id is not null THEN ( opli_id) END) as nb_oppli_pa,
 		sum(amount) as amount,
 		sum(flag_upgrade) as flag_upgrade, sum(flag_downgrade) as flag_downgrade
-FROM public.tmp_current_month_contact_1
+FROM datamart.tmp_current_month_contact_1
 GROUP BY contact_id, observation_date;
 	
 
@@ -85,9 +85,9 @@ tstart := clock_timestamp();
 CALL public.log_message('Join histo_contact and current_contact : contact to update');
 /* ************************************************************************ */
 
-drop table if exists public.tmp_contact_to_update;
+drop table if exists datamart.tmp_contact_to_update;
 create UNLOGGED table 
-	public.tmp_contact_to_update as 
+	datamart.tmp_contact_to_update as 
 SELECT  
 	hc.contact_id,
 	TO_DATE('01' || lpad(current_month::text, 2, '0') || current_year, 'DDMMYYYY') as observation_date,
@@ -107,8 +107,8 @@ SELECT
 	min(hc.nb_month_last_pa) as nb_month_last_pa, 
 	min(hc.nb_month_last_activity) as nb_month_last_activity
 FROM 
-	public.histo_contact as hc
-	LEFT JOIN public.tmp_current_month_contact as cmc
+	datamart.histo_contact as hc
+	LEFT JOIN datamart.tmp_current_month_contact as cmc
 		ON hc.contact_id = cmc.contact_id
 	LEFT JOIN salesforce."s360a__RegularGiving__c" AS rg
 		on hc.contact_id = rg."s360a__Contact__c"
@@ -128,10 +128,10 @@ tstart := clock_timestamp();
 CALL public.log_message('update contact');
 /* ************************************************************************ */
 
-drop table if exists public.tmp_histo_update;
+drop table if exists datamart.tmp_histo_update;
 
 create UNLOGGED table 
-	public.tmp_histo_update as 
+	datamart.tmp_histo_update as 
 SELECT  
 	contact_id,
 	observation_date,
@@ -148,7 +148,7 @@ SELECT
 	CASE WHEN nb_pa > 0 		 THEN 1 ELSE nb_month_last_pa + 1 		END nb_month_last_pa,
 	CASE WHEN nb_opportunity > 0 THEN 1 ELSE nb_month_last_activity + 1 END nb_month_last_activity
 FROM 
-	public.tmp_contact_to_update;
+	datamart.tmp_contact_to_update;
 	
 
 /* ***************************** LOG PART ********************************* */
@@ -159,10 +159,10 @@ tstart := clock_timestamp();
 CALL public.log_message('new contact');
 /* ************************************************************************ */
 
-drop table if exists public.tmp_histo_insert_prep;
+drop table if exists datamart.tmp_histo_insert_prep;
 
 create UNLOGGED table 
-	public.tmp_histo_insert_prep as 
+	datamart.tmp_histo_insert_prep as 
 SELECT
 	tcmc.contact_id,
 	tcmc.observation_date,
@@ -182,11 +182,11 @@ SELECT
 	CASE WHEN nb_pa > 0 		 THEN 1		ELSE 99 	END nb_month_last_pa,
 	CASE WHEN nb_opportunity > 0 THEN 1 	ELSE 99 	END nb_month_last_activity
 FROM
-	public.tmp_current_month_contact as tcmc
+	datamart.tmp_current_month_contact as tcmc
 	LEFT JOIN salesforce."s360a__RegularGiving__c" AS rg
 		on tcmc.contact_id = rg."s360a__Contact__c"
 WHERE
-	contact_id not in (select distinct contact_id from public.tmp_histo_update where contact_id is not null)
+	contact_id not in (select distinct contact_id from datamart.tmp_histo_update where contact_id is not null)
 GROUP BY 	
 	tcmc.contact_id,
 	tcmc.observation_date,
@@ -196,13 +196,13 @@ GROUP BY
 	rg."s360a__RGStatus__c",
 	rg."s360a__FirstPaymentDate__c",
 	rg."gpi__Cancelled_Date__c";
---drop table if exists public.tmp_current_month_contact;
---drop table if exists public.tmp_current_month_contact;
+--drop table if exists datamart.tmp_current_month_contact;
+--drop table if exists datamart.tmp_current_month_contact;
 
-drop table if exists public.tmp_histo_insert;
+drop table if exists datamart.tmp_histo_insert;
 
 create UNLOGGED table 
-	public.tmp_histo_insert as 
+	datamart.tmp_histo_insert as 
 SELECT
 	contact_id,
 	observation_date,
@@ -219,7 +219,7 @@ SELECT
 	min(nb_month_last_pa) as nb_month_last_pa,
 	min(nb_month_last_activity) as nb_month_last_activity
 FROM
-	public.tmp_histo_insert_prep
+	datamart.tmp_histo_insert_prep
 GROUP BY
 	contact_id,
 	observation_date;
@@ -232,15 +232,15 @@ tstart := clock_timestamp();
 CALL public.log_message('union current month insert and update data');
 /* ************************************************************************ */
 
-drop table if exists public.tmp_histo;
+drop table if exists datamart.tmp_histo;
 
 create UNLOGGED table 
-	public.tmp_histo as 
-SELECT * FROM  public.tmp_histo_insert
+	datamart.tmp_histo as 
+SELECT * FROM  datamart.tmp_histo_insert
 UNION ALL
-SELECT * FROM  public.tmp_histo_update;
+SELECT * FROM  datamart.tmp_histo_update;
 
---drop table if exists public.tmp_contact_to_insert;
+--drop table if exists datamart.tmp_contact_to_insert;
 
 /* ***************************** LOG PART ********************************* */
 tend := clock_timestamp();
@@ -251,27 +251,27 @@ CALL public.log_message('insert data in histo table');
 /* ************************************************************************ */
 
 /* au cas où il y a déjà des données pour ce mois ci, évite les doublons */
-DELETE FROM public.histo_contact 
+DELETE FROM datamart.histo_contact 
 WHERE date_part('month', observation_date) = current_month
   AND date_part('year', observation_date) = current_year;
  
-INSERT INTO public.histo_contact (	contact_id, observation_date,
+INSERT INTO datamart.histo_contact (	contact_id, observation_date,
 									nb_opportunity, nb_du, nb_pa_actif, arret_pa, nb_pa, nb_oppli_pa, amount, flag_upgrade, flag_downgrade,
 									nb_month_last_du, nb_month_last_pa, nb_month_last_activity)
 SELECT contact_id, observation_date,
 		nb_opportunity, nb_du, nb_pa_actif, arret_pa, nb_pa, nb_oppli_pa, amount, flag_upgrade, flag_downgrade,
 		nb_month_last_du, nb_month_last_pa, nb_month_last_activity
-FROM public.tmp_histo;
+FROM datamart.tmp_histo;
 
 /*
-select * from public.tmp_contact_to_update where contact_id is null
+select * from datamart.tmp_contact_to_update where contact_id is null
 
-drop table if exists public.tmp_contact_to_update;
-drop table if exists public.tmp_current_month_contact_1;
-drop table if exists public.tmp_current_month_contact;
-drop table if exists public.tmp_histo;
-drop table if exists public.tmp_histo_insert;
-drop table if exists public.tmp_histo_update;
+drop table if exists datamart.tmp_contact_to_update;
+drop table if exists datamart.tmp_current_month_contact_1;
+drop table if exists datamart.tmp_current_month_contact;
+drop table if exists datamart.tmp_histo;
+drop table if exists datamart.tmp_histo_insert;
+drop table if exists datamart.tmp_histo_update;
 */
 tend := clock_timestamp();
 duration := tend - tstart;
@@ -283,9 +283,7 @@ CALL public.log_message('CORRECTLY FINISH.');
 END
 $BODY$;
 
-GRANT EXECUTE ON PROCEDURE public.contact_historization(integer, integer) TO nsuch WITH GRANT OPTION;
+GRANT EXECUTE ON PROCEDURE datamart.contact_historization(integer, integer) TO csadorge;
 
-GRANT EXECUTE ON PROCEDURE public.contact_historization(integer, integer) TO csadorge;
-
-GRANT EXECUTE ON PROCEDURE public.contact_historization(integer, integer) TO PUBLIC;
+GRANT EXECUTE ON PROCEDURE datamart.contact_historization(integer, integer) TO PUBLIC;
 

@@ -1,8 +1,8 @@
--- PROCEDURE: public.rm_4_lux_minus_table()
+-- PROCEDURE: datamart.rm_4_lux_minus_table()
 
--- DROP PROCEDURE public.rm_4_lux_minus_table();
+-- DROP PROCEDURE datamart.rm_4_lux_minus_table();
 
-CREATE OR REPLACE PROCEDURE public.rm_4_lux_minus_table(
+CREATE OR REPLACE PROCEDURE datamart.rm_4_lux_minus_table(
 	)
 LANGUAGE 'plpgsql'
 AS $BODY$
@@ -15,21 +15,21 @@ BEGIN
 
 CALL public.log_message('Create Luxembourg one');
 
-drop table if exists public.opportunity_li_fact_lux;
+drop table if exists datamart.opportunity_li_fact_lux;
 
 create table
-	public.opportunity_li_fact_lux as 
+	datamart.opportunity_li_fact_lux as 
 select  
 	*
 FROM 
-	public.opportunity_li_fact as oplif
+	datamart.opportunity_li_fact as oplif
 where 
 	country = 'Luxembourg';
 
 	
-drop table if exists public.opportunity_lux;
+drop table if exists datamart.opportunity_lux;
 create table 
-	public.opportunity_lux as 
+	datamart.opportunity_lux as 
 SELECT 	
 	"Id" as id,
 	"Amount" as amout,
@@ -44,7 +44,7 @@ SELECT
 FROM 
 	salesforce."Opportunity" as opp
 WHERE
-	"Id" in (select opportunity_id from public.opportunity_li_fact_lux);
+	"Id" in (select opportunity_id from datamart.opportunity_li_fact_lux);
 	
 	
 

@@ -1,8 +1,8 @@
--- PROCEDURE: public.contact_historization_aggregate(integer, integer)
+-- PROCEDURE: datamart.contact_historization_aggregate(integer, integer)
 
--- DROP PROCEDURE public.contact_historization_aggregate(integer, integer);
+-- DROP PROCEDURE datamart.contact_historization_aggregate(integer, integer);
 
-CREATE OR REPLACE PROCEDURE public.contact_historization_aggregate(
+CREATE OR REPLACE PROCEDURE datamart.contact_historization_aggregate(
 	current_month integer,
 	current_year integer)
 LANGUAGE 'plpgsql'
@@ -42,9 +42,9 @@ CALL public.log_message('Get primary campaign from opportunity');
 tstart := clock_timestamp();
 fulltimestart := clock_timestamp();
 
-drop table if exists public.tmp_first_opp;
+drop table if exists datamart.tmp_first_opp;
 create table 
-	public.tmp_first_opp as
+	datamart.tmp_first_opp as
 SELECT 
 	"s360a__Contact__c" as contact_id,
 	min("CloseDate") as first_date
@@ -55,30 +55,30 @@ WHERE
 GROUP BY
 	"s360a__Contact__c";
 	
-drop table public.first_opp_w_contact;
+drop table if exists datamart.first_opp_w_contact;
 
 create table
-	public.first_opp_w_contact as
+	datamart.first_opp_w_contact as
 SELECT 
 	opp."Id" as opp_id,
 	"s360a__Contact__c" as contact_id,
 	opp."s360a__RegularGiving__c" as rg_id,
 	opp."CampaignId" as campaign_id
 	
-FROM public.tmp_first_opp as tfo
+FROM datamart.tmp_first_opp as tfo
 left join salesforce."Opportunity" as opp
 	on tfo.contact_id = opp."s360a__Contact__c" and tfo.first_date = opp."CloseDate";
 	
 
-drop table if exists public.tmp_first_opp;
+drop table if exists datamart.tmp_first_opp;
 
 tend := clock_timestamp();
 duration := tend - tstart;
 CALL public.log_message('Contact histo COMPLETE. Execution time: '||duration);
 
-drop table if exists public.tmp_histo_contact;
+drop table if exists datamart.tmp_histo_contact;
 create UNLOGGED table 
-	public.tmp_histo_contact as 
+	datamart.tmp_histo_contact as 
 SELECT  
 	hc.*,
 	contact."gpi__CountryOfOwnership__c" as country,
@@ -86,10 +86,10 @@ SELECT
 	case when contact."s360a__DeceasedDate__c" is null or contact."s360a__DeceasedDate__c" >= observation_date + interval '1 month' then true else false end alive,
 	fowc.campaign_id as first_campaign_id
 FROM 
-	public.histo_contact as hc
+	datamart.histo_contact as hc
 	LEFT JOIN salesforce."Contact" as contact
 	on hc.contact_id = contact."Id"
-	LEFT JOIN public.first_opp_w_contact as fowc
+	LEFT JOIN datamart.first_opp_w_contact as fowc
 	on hc.contact_id = fowc.contact_id
 WHERE
 	date_part('year', observation_date) = current_year
@@ -104,9 +104,9 @@ CALL public.log_message('Join histo_contact and current_contact');
 /* ************************************************************************ */	
 	
 
-drop table if exists public.tmp_suivi_contact;
+drop table if exists datamart.tmp_suivi_contact;
 create UNLOGGED table 
-	public.tmp_suivi_contact as 
+	datamart.tmp_suivi_contact as 
 SELECT  
 	observation_date,
 	country,
@@ -133,7 +133,7 @@ SELECT
 	
 	
 FROM 
-	public.tmp_histo_contact as thc
+	datamart.tmp_histo_contact as thc
 GROUP BY 
 	observation_date,
 	country,
@@ -153,17 +153,17 @@ CALL public.log_message('FINISH. Execution time: '||duration);
 tstart := clock_timestamp();
 CALL public.log_message('Delete temp table');
 /* ************************************************************************ */
-DELETE FROM public.suivi_contact 
+DELETE FROM datamart.suivi_contact 
 WHERE date_part('month', observation_date) = current_month
   AND date_part('year', observation_date) = current_year;
  
-INSERT INTO public.suivi_contact (	observation_date, country, primary_campaign,
+INSERT INTO datamart.suivi_contact (	observation_date, country, primary_campaign,
 	nb_contact, nb_opportunity, nb_du, /*nb_pa,*/ nb_pa_actif, nb_arret_pa, nb_upgrade, nb_downgrade, /*nb_oppli_pa,*/ amount, last_activity, last_du, last_pa, alive, first_campaign_id)
 SELECT observation_date, country, primary_campaign,
 	nb_contact, nb_opportunity, nb_du, /*nb_pa,*/ nb_pa_actif, nb_arret_pa, nb_upgrade, nb_downgrade, /*nb_oppli_pa,*/ amount, last_activity, last_du, last_pa, alive, first_campaign_id
-FROM public.tmp_suivi_contact;
+FROM datamart.tmp_suivi_contact;
 
-drop table if exists public.tmp_histo_contact;
+drop table if exists datamart.tmp_histo_contact;
 
 tend := clock_timestamp();
 duration := tend - tstart;
@@ -175,9 +175,7 @@ CALL public.log_message('CORRECTLY FINISH.');
 END
 $BODY$;
 
-GRANT EXECUTE ON PROCEDURE public.contact_historization_aggregate(integer, integer) TO nsuch WITH GRANT OPTION;
+GRANT EXECUTE ON PROCEDURE datamart.contact_historization_aggregate(integer, integer) TO csadorge;
 
-GRANT EXECUTE ON PROCEDURE public.contact_historization_aggregate(integer, integer) TO csadorge;
-
-GRANT EXECUTE ON PROCEDURE public.contact_historization_aggregate(integer, integer) TO PUBLIC;
+GRANT EXECUTE ON PROCEDURE datamart.contact_historization_aggregate(integer, integer) TO PUBLIC;
 

@@ -2,7 +2,7 @@
 
 -- DROP PROCEDURE public."DuplicateStagingContactProc"(); --
 
-CREATE OR REPLACE PROCEDURE public."DuplicateStagingContactProc"(
+CREATE OR REPLACE PROCEDURE public."DuplicateStagingContactbisProc"(
 	)
 LANGUAGE 'plpgsql'
 AS $BODY$
@@ -103,7 +103,7 @@ duration := tend - tstart;
 CALL public.log_message('Update Stagings : ');
 CALL public.log_message('CORRECTLY FINISH.');
 
-GRANT SELECT ON public."DuplicateStagingContact" TO PUBLIC;
+GRANT SELECT ON public."DuplicateStagingContactbisProc" TO PUBLIC;
 
 END
 $BODY$;
