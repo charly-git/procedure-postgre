@@ -16,7 +16,7 @@ CALL public.log_message('Create Datamart : START');
 /* ***************************** LOG PART ********************************* */
 tstart := clock_timestamp();
 CALL public.log_message('get contact.');
-/* ************************************************************************ */
+/* ************************************************************************* */
 
 create table 
 	datamart.tmp_contact
