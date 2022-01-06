@@ -48,8 +48,7 @@ where "AutomaticContactCodes__c" like '%Non Donor%'
  and ("Email" is not null or "Phone" is not null or "MobilePhone" is not null)
   and ("Email" not in (select email from datamart.tmp_leads_leads where email is not null) or "Email" is null);
 	
-/*
-		select count (*), date_part('year', "gpi__Lead_Sign_Up_Date__c")  as year
+/*	select count (*), date_part('year', "gpi__Lead_Sign_Up_Date__c")  as year
 FROM salesforce."Contact" 
 --where 
 	group by date_part('year', "gpi__Lead_Sign_Up_Date__c") 
