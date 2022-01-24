@@ -16,8 +16,9 @@ CALL public.log_message('Create Datamart : START');
 /* ***************************** LOG PART ********************************* */
 tstart := clock_timestamp();
 CALL public.log_message('get contact.');
-/* ************************************************************************* */
+/* ************************************************************************ */
 
+drop table if exists datamart.tmp_contact;
 create table 
 	datamart.tmp_contact
 as
@@ -30,6 +31,7 @@ SELECT
 	"MailingPostalCode" as mailing_postal_code,
 	"Email" as email,
 	"gpi__Lead_Sign_Up_Date__c" as lead_sign_up_date,
+	"Signup_Date__c" as sign_up_date,
 	"N1__c" as segmentation_n1,
 	"N2__c" as segmentation_n2
 FROM 
@@ -43,13 +45,24 @@ drop table if exists datamart.contact;
 create table 
 	datamart.contact as
 SELECT 
-	id, first_donation_date, last_donation_date, count("Id") as nb_rg, last_name, first_name, mailing_postal_code, email, lead_sign_up_date, segmentation_n1, segmentation_n2
+	contact.id, 
+	contact.first_donation_date, 
+	contact.last_donation_date, 
+	count("Id") as nb_rg, 
+	contact.last_name, 
+	contact.first_name, 
+	contact.mailing_postal_code, 
+	contact.email, 
+	contact.lead_sign_up_date,
+	contact.sign_up_date,
+	contact.segmentation_n1, 
+	contact.segmentation_n2
 FROM 
 	datamart.tmp_contact AS contact
 	left join salesforce."s360a__RegularGiving__c" as rg
-	on contact.id = rg."s360a__Contact__c"
+		on contact.id = rg."s360a__Contact__c"
 GROUP BY
-	id, first_donation_date, last_donation_date, last_name, first_name, mailing_postal_code, email, lead_sign_up_date, segmentation_n1, segmentation_n2;
+	id, first_donation_date, last_donation_date, last_name, first_name, mailing_postal_code, email, lead_sign_up_date, sign_up_date, segmentation_n1, segmentation_n2;
 
 drop table if exists datamart.tmp_contact;
 
