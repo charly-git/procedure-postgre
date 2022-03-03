@@ -66,6 +66,8 @@ GROUP BY
 
 drop table if exists datamart.tmp_contact;
 
+GRANT SELECT ON datamart.contact TO public;
+
 /* ***************************** LOG PART ********************************* */
 tend := clock_timestamp();
 duration := tend - tstart;
@@ -119,6 +121,9 @@ HAVING   COUNT(*) > 1
 	
 	*/
 	
+	
+GRANT SELECT ON datamart.campaign_member TO public;
+	
 /* ***************************** LOG PART ********************************* */
 tend := clock_timestamp();
 duration := tend - tstart;
@@ -146,8 +151,7 @@ FROM
 WHERE
 	"Id" in (select opportunity_id from datamart.opportunity_li_fact);
 	
-	
-	
+GRANT SELECT ON datamart.opportunity TO public;	
 
 drop table if exists datamart.campaign;
 
@@ -162,14 +166,16 @@ SELECT
 	"gpi__Sub_Channel__c"		as sub_channel,
 	"gpi__Media_Channel__c"		as media_channel,
 	"gpi__Programme__c"			as programme,
-	"StartDate"					as start_date
-	
-	
+	"StartDate"					as start_date,
+	"gpi__GP_Campaign__c"		as gp_campaign, -- add 23/02/2022
+	"GP_Project__c"				as gp_project -- add 23/02/2022
 FROM 
 	salesforce."Campaign"
 WHERE
 	"Id" in (select campaign_id from datamart.opportunity_li_fact);
-	
+
+GRANT SELECT ON datamart.campaign TO public;
+
 tend := clock_timestamp();
 duration := tend - tstart;
 CALL public.log_message('first step COMPLETE. Execution time: '||duration);

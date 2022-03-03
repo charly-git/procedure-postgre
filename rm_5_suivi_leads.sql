@@ -15,7 +15,7 @@ BEGIN
 environnement := 'dev';
 
 CALL public.log_message('Create Suivi Lead : START');
-CALL public.log_message('Get leads ');
+CALL public.log_message('Get leads from lead');
 tstart := clock_timestamp();
 
 drop table if exists datamart.tmp_leads_leads;
@@ -31,6 +31,7 @@ SELECT 	-- "Id",
 FROM salesforce."Lead"
 	where "IsConverted" is false;
 	
+CALL public.log_message('Get leads from contact');	
 drop table if exists datamart.tmp_leads_contact;
 create table 
 	datamart.tmp_leads_contact as 	
@@ -48,7 +49,8 @@ where "AutomaticContactCodes__c" like '%Non Donor%'
  and ("Email" is not null or "Phone" is not null or "MobilePhone" is not null)
   and ("Email" not in (select email from datamart.tmp_leads_leads where email is not null) or "Email" is null);
 	
-/*	select count (*), date_part('year', "gpi__Lead_Sign_Up_Date__c")  as year
+/*
+		select count (*), date_part('year', "gpi__Lead_Sign_Up_Date__c")  as year
 FROM salesforce."Contact" 
 --where 
 	group by date_part('year', "gpi__Lead_Sign_Up_Date__c") 
@@ -84,6 +86,7 @@ WHERE
 	
 -- 546697
 -- 500518
+GRANT ALL ON datamart.suivi_leads TO public;
 
 tend := clock_timestamp();
 duration := tend - tstart;

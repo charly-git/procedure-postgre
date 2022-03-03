@@ -30,7 +30,7 @@ CALL public.log_message('rm fact and dim tables.');
 /* ************************************************************************ */
 
 CALL datamart.rm_1_create_fact_table();
-CALL datamart.rm_2_correctif_fact_table();
+--CALL datamart.rm_2_correctif_fact_table();
 CALL datamart.rm_3_get_dim_from_fact();
 
 /* ***************************** LOG PART ********************************* */
@@ -42,6 +42,16 @@ CALL public.log_message('Extract lux.');
 /* ************************************************************************ */
 
 CALL datamart.rm_4_lux_minus_table();
+
+/* ***************************** LOG PART ********************************* */
+tend := clock_timestamp();
+duration := tend - tstart;
+CALL public.log_message('Update Lux FINISH. Execution time: '||duration);
+tstart := clock_timestamp();
+CALL public.log_message('Suivi leads');
+/* ************************************************************************ */
+
+CALL datamart.rm_5_suivi_leads();
 
 /* ***************************** LOG PART ********************************* */
 tend := clock_timestamp();
@@ -60,12 +70,13 @@ if previous_month = 0 then
    previous_month := 12;
 end if;
 
+--/*
 CALL datamart.contact_historization(previous_month, previous_year);  
 CALL datamart.contact_historization_aggregate(previous_month, previous_year); 
 
 CALL datamart.contact_historization(current_month, current_year);  
 CALL datamart.contact_historization_aggregate(current_month, current_year); 
-
+-- */
 /* ***************************** LOG PART ********************************* */
 tend := clock_timestamp();
 duration := tend - tstart;
@@ -84,5 +95,9 @@ CALL public.log_message('CORRECTLY FINISH.');
 END
 $BODY$;
 
-GRANT EXECUTE ON PROCEDURE datamart.update_tableau() TO public;
+GRANT EXECUTE ON PROCEDURE datamart.update_tableau() TO nsuch WITH GRANT OPTION;
+
+GRANT EXECUTE ON PROCEDURE datamart.update_tableau() TO csadorge;
+
+GRANT EXECUTE ON PROCEDURE datamart.update_tableau() TO PUBLIC;
 

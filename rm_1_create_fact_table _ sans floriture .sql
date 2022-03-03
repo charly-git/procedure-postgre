@@ -1,25 +1,4 @@
--- PROCEDURE: datamart.rm_1_create_fact_table()
-
--- DROP PROCEDURE datamart.rm_1_create_fact_table();
-
-CREATE OR REPLACE PROCEDURE datamart.rm_1_create_fact_table(
-	)
-LANGUAGE 'plpgsql'
-AS $BODY$
-DECLARE environnement VARCHAR;
-DECLARE tstart TIMESTAMP; 
-DECLARE tend TIMESTAMP;
-DECLARE duration INTERVAL;
-
-BEGIN
-environnement := 'dev';
-
-CALL public.log_message('Clean');
-
-CALL public.log_message('Create Datamart : START');
-CALL public.log_message('Get opportunity > 2018 with campaign_id ');
-tstart := clock_timestamp();
-
+/* Get opportunity > 2018 with campaign_id  */
 create table 
 	datamart.tmp_opp as 
 SELECT 
@@ -37,18 +16,10 @@ FROM
 	LEFT JOIN "salesforce"."Campaign" AS campaign ON campaign."Id" = opp."CampaignId"
 WHERE 
 	opp."IsWon" is true
- 	and date_part('year', opp."CloseDate") > 2018
-	--and campaign."Id" = '7013V000000LJ8cQAG'
-	-- and "s360a__Contact__c" = '0033V00000H4BUwQAN'
-	;
+ 	and date_part('year', opp."CloseDate") > 2018;
 
-/* ***************************** LOG PART ********************************* */
-tend := clock_timestamp();
-duration := tend - tstart;
-CALL public.log_message('FINISH. Execution time: '||duration);
-tstart := clock_timestamp();
-CALL public.log_message('Add opportunity line item to previous select.');
-/* ************************************************************************ */
+
+/* Add opportunity line item to previous select. */
 
 create table 
 	datamart.tmp_opli_fact as 
@@ -70,13 +41,8 @@ FROM
 	LEFT JOIN salesforce."OpportunityLineItem" as opli 
 	ON opli."OpportunityId" = opp.opportunity_id;
 
-/* ***************************** LOG PART ********************************* */
-tend := clock_timestamp();
-duration := tend - tstart;
-CALL public.log_message('FINISH. Execution time: '||duration);
-tstart := clock_timestamp();
-CALL public.log_message('Get RGLI with RG et GL.');
-/* ************************************************************************ */
+
+/* Get RGLI with RG et GL. */
 
 create table 
 	datamart.tmp_rgli_fact as 
@@ -106,13 +72,8 @@ FROM datamart.tmp_rgli_fact as rgli
 	 LEFT JOIN salesforce."s360a__RegularGiving__c" as rg 
 	 ON rgli.rg_id = rg."Id";
 
-/* ***************************** LOG PART ********************************* */
-tend := clock_timestamp();
-duration := tend - tstart;
-CALL public.log_message('FINISH. Execution time: '||duration);
-tstart := clock_timestamp();
-CALL public.log_message('Reconciliation DU & RG.');
-/* ************************************************************************ */
+
+/* Reconciliation DU & RG */
 
 create table 
 	datamart.tmp_li_fact as
@@ -138,14 +99,8 @@ FROM datamart.tmp_opli_fact as opli
 	 left join datamart.tmp_rgli_fact_2 as rgli
 	 on opli.rgli_id = rgli.rgli_id;
 	 
-	 
-/* ***************************** LOG PART ********************************* */
-tend := clock_timestamp();
-duration := tend - tstart;
-CALL public.log_message('FINISH. Execution time: '||duration);
-tstart := clock_timestamp();
-CALL public.log_message('Get Campaign Member.');
-/* ************************************************************************ */
+
+/* Get Campaign Member. */
 	 
 create table 
 	datamart.tmp_opportunity_li_fact as
@@ -170,15 +125,10 @@ FROM datamart.tmp_li_fact as op
 	 left join salesforce."CampaignMember" as cm
 	 on op.campaign_id = cm."CampaignId" and op.contact_id = cm."ContactId" ;
 
-/* ***************************** LOG PART ********************************* */
-tend := clock_timestamp();
-duration := tend - tstart;
-CALL public.log_message('FINISH. Execution time: '||duration);
-tstart := clock_timestamp();
-CALL public.log_message('Get previous opportunity.');
-/* ************************************************************************ */
 
-/*drop table datamart.get_previous_don;*/
+
+/* Get previous opportunity. */
+
 
 create table 
 	datamart.tmp_get_previous_don as
@@ -206,13 +156,11 @@ FROM
 	left join datamart.tmp_get_previous_don as prev 
 	on opli.opli_id = prev.opli_id;
 
-/* ***************************** LOG PART ********************************* */
-tend := clock_timestamp();
-duration := tend - tstart;
-CALL public.log_message('FINISH. Execution time: '||duration);
-tstart := clock_timestamp();
-CALL public.log_message('Get first donation date DU ou RG.');
-/* ************************************************************************ */
+
+
+
+
+/* Get first donation date DU ou RG */
 
 drop table if exists datamart.opportunity_li_fact;
 
@@ -239,43 +187,8 @@ from salesforce."Campaign" camp
 where op.campaign_id = camp."Id" 
 and op.name_campaign is null;
 
-	
-if environnement = 'prod' then
-	drop table datamart.opp_tmp;
-	drop table datamart.opli_fact;
-	drop table datamart.rgli_fact_tmp;
-	drop table datamart.rgli_fact;
-	drop table datamart.li_fact;
-	drop table datamart.opportunity_li_fact_tmp;
-	drop table datamart.opportunity_li_fact_tmp2;
-	drop table datamart.get_previous_don;
-end if;
+
 
 GRANT SELECT ON datamart.opportunity_li_fact TO public;
 
-tend := clock_timestamp();
-duration := tend - tstart;
-CALL public.log_message('first step COMPLETE. Execution time: '||duration);
-CALL public.log_message('CORRECTLY FINISH.');
-
-CALL public.log_message('CLEAN.');
-drop table if exists datamart.tmp_opp;
-drop table if exists datamart.tmp_opli_fact;
-drop table if exists datamart.tmp_rgli_fact;
-drop table if exists datamart.tmp_rgli_fact_2;
-drop table if exists datamart.tmp_li_fact;
-drop table if exists datamart.tmp_opportunity_li_fact;
-drop table if exists datamart.tmp_get_previous_don;
-drop table if exists datamart.tmp_opportunity_li_fact_2;
-drop table if exists datamart.tmp_contact_first_donation_date;
-CALL public.log_message('CLEAN FINISH.');
-
-GRANT ALL ON datamart.opportunity_li_fact TO public;
-
-END
-$BODY$;
-
-GRANT EXECUTE ON PROCEDURE datamart.rm_1_create_fact_table() TO csadorge;
-
-GRANT EXECUTE ON PROCEDURE datamart.rm_1_create_fact_table() TO PUBLIC;
 

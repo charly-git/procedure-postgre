@@ -71,5 +71,7 @@ CALL public.log_message('UPDATE FINISHED.');
 END
 $BODY$;
 
-GRANT EXECUTE ON PROCEDURE datamart.rm_2_correctif_fact_table() TO public;
+GRANT EXECUTE ON PROCEDURE datamart.rm_2_correctif_fact_table() TO csadorge;
+
+GRANT EXECUTE ON PROCEDURE datamart.rm_2_correctif_fact_table() TO PUBLIC;
 
